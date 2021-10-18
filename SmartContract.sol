@@ -178,6 +178,6 @@ contract SmartContract is ERC721Enumerable, Ownable {
 
   function withdraw() external onlyAuthorized {
     uint balance = address(this).balance;
-    payable(owner()).transfer(address(this).balance);
+    payable(owner()).transfer(balance);
   }
 }
