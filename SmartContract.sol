@@ -157,12 +157,19 @@ contract SmartContract is ERC721Enumerable, Ownable {
   }
 
   function transferRandomTokens(uint256 _count, address[] calldata addresses) external onlyAuthorized {
-    
-    for (uint256 i = 0; i < addresses.length; i++) {
-      require(addresses[i] != address(0), "Can't add a null address");
-      mint(addresses[i], _count);
-    }
+      uint256 supply = totalSupply();
 
+      require(supply + _count <= maximumMintSupply, "Total supply exceeded.");
+      require(supply <= maximumMintSupply, "Total supply spent.");
+
+      for (uint256 i = 0; i < addresses.length; i++) {
+        require(addresses[i] != address(0), "Can't add a null address");
+        
+        for(uint256 j = 0; j < _count; j++) {
+           emit AssetMinted(totalSupply(), addresses[i]);
+          _safeMint(addresses[i], totalSupply());
+        }
+      }
   }
 
   function preSaleMint(uint256 _count) public payable saleIsOpen {
