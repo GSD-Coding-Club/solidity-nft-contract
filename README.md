@@ -57,6 +57,11 @@
 
 > The method is used to limit the minting count per user on presale stage 
 
+**setMaxMintSupply** -
+    ***required parameter - NUMBER***
+
+> The method is used to control and manipulate total supply limit 
+
 **setBaseURI** -
     ***required parameter - string***
 
@@ -96,6 +101,13 @@
 > Method is used for giveaways or for transferring specific items between accounts
 
 **withdraw** -    **We sure you know for what it is ;) **
+
+**transferRandomTokens** -
+    ***required parameters:***
+        - count of tokens (NUMBER)
+        -  list of addresses separated by commas (WALLET_ID **,** WALLET_ID)
+
+> The method is used to do grouped giveaways by providing the number of tokens and addresses
 
 ## Reading Methods
 

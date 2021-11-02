@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
@@ -15,7 +16,7 @@ contract SmartContract is ERC721Enumerable, Ownable {
   bool public isActive = false;
   bool public isAllowListActive = false;
 
-  uint256 public constant MAX_MINTSUPPLY = 10000;
+  uint256 public maximumMintSupply = 10000;
   uint256 public maximumAllowedTokensPerPurchase = 10;
   uint256 public allowListMaxMint = 5;
 
@@ -30,7 +31,7 @@ contract SmartContract is ERC721Enumerable, Ownable {
   }
 
   modifier saleIsOpen {
-    require(totalSupply() <= MAX_MINTSUPPLY, "Sale has ended.");
+    require(totalSupply() <= maximumMintSupply, "Sale has ended.");
     _;
   }
 
@@ -46,6 +47,10 @@ contract SmartContract is ERC721Enumerable, Ownable {
   function setActive(bool val) public onlyAuthorized {
     isActive = val;
     emit SaleActivation(val);
+  }
+
+  function setMaxMintSupply(uint256 maxMintSupply) external  onlyAuthorized {
+    maximumMintSupply = maxMintSupply;
   }
 
   function setIsAllowListActive(bool _isAllowListActive) external onlyAuthorized {
@@ -137,8 +142,8 @@ contract SmartContract is ERC721Enumerable, Ownable {
       require(isActive, "Sale is not active currently.");
     }
 
-    require(totalSupply() + _count <= MAX_MINTSUPPLY, "Total supply exceeded.");
-    require(totalSupply() <= MAX_MINTSUPPLY, "Total supply spent.");
+    require(totalSupply() + _count <= maximumMintSupply, "Total supply exceeded.");
+    require(totalSupply() <= maximumMintSupply, "Total supply spent.");
     require(
       _count <= maximumAllowedTokensPerPurchase,
       "Exceeds maximum allowed tokens"
@@ -151,10 +156,26 @@ contract SmartContract is ERC721Enumerable, Ownable {
     }
   }
 
+  function transferRandomTokens(uint256 _count, address[] calldata addresses) external onlyAuthorized {
+      uint256 supply = totalSupply();
+
+      require(supply + _count <= maximumMintSupply, "Total supply exceeded.");
+      require(supply <= maximumMintSupply, "Total supply spent.");
+
+      for (uint256 i = 0; i < addresses.length; i++) {
+        require(addresses[i] != address(0), "Can't add a null address");
+        
+        for(uint256 j = 0; j < _count; j++) {
+           emit AssetMinted(totalSupply(), addresses[i]);
+          _safeMint(addresses[i], totalSupply());
+        }
+      }
+  }
+
   function preSaleMint(uint256 _count) public payable saleIsOpen {
     require(isAllowListActive, 'Allow List is not active');
     require(_allowList[msg.sender], 'You are not on the Allow List');
-    require(totalSupply() < MAX_MINTSUPPLY, 'All tokens have been minted');
+    require(totalSupply() < maximumMintSupply, 'All tokens have been minted');
     require(_count <= allowListMaxMint, 'Cannot purchase this many tokens');
     require(_allowListClaimed[msg.sender] + _count <= allowListMaxMint, 'Purchase exceeds max allowed');
     require(msg.value >= mintPrice * _count, 'Insuffient ETH amount sent.');
