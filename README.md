@@ -47,6 +47,14 @@
 
 > The method is used to reserve the nfts which will be redirected to the owner's account
 
+
+**reserveToCustomWallet** -
+    ***required parameters:***
+   - address
+   - count of minting items(**NUMBER**)
+
+> The method is used to reserve the nfts which will be airdropped to the selected wallet address account
+
 **setActive** -
     ***required parameter - true/false***
 
@@ -102,7 +110,7 @@
 
 **withdraw** -    **We sure you know for what it is ;) **
 
-**transferRandomTokens** -
+**batchReserveToMultipleAddresses** -
     ***required parameters:***
         - count of tokens (NUMBER)
         -  list of addresses separated by commas (WALLET_ID **,** WALLET_ID)
