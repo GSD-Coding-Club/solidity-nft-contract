@@ -142,6 +142,13 @@ contract SmartContract is ERC721Enumerable, Ownable {
     }
   }
 
+  function reserveToCustomWallet(address _walletAddress, uint256 _count) public onlyAuthorized {
+    for (uint256 i = 0; i < _count; i++) {
+      emit AssetMinted(totalSupply(), _walletAddress);
+      _safeMint(_walletAddress, totalSupply());
+    }
+  }
+
   function mint(address _to, uint256 _count) public payable saleIsOpen {
     if (msg.sender != owner()) {
       require(isActive, "Sale is not active currently.");
@@ -153,7 +160,7 @@ contract SmartContract is ERC721Enumerable, Ownable {
       _count <= maximumAllowedTokensPerPurchase,
       "Exceeds maximum allowed tokens"
     );
-    require(balanceOf(msg.sender) == maximumAllowedTokensPerWallet, "Purchase exceeds max allowed");
+    
     require(msg.value >= mintPrice * _count, "Insuffient ETH amount sent.");
 
     for (uint256 i = 0; i < _count; i++) {
@@ -162,7 +169,7 @@ contract SmartContract is ERC721Enumerable, Ownable {
     }
   }
 
-  function transferRandomTokens(uint256 _count, address[] calldata addresses) external onlyAuthorized {
+  function batchReserveToMultipleAddresses(uint256 _count, address[] calldata addresses) external onlyAuthorized {
       uint256 supply = totalSupply();
 
       require(supply + _count <= maximumMintSupply, "Total supply exceeded.");
