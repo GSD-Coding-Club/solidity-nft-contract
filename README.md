@@ -90,6 +90,12 @@
 
 > The method is used to limit the maximum nfts count per purchase
 
+
+**setMaximumAllowedTokensPerWallet** -
+    ***required parameter - NUMBER***
+
+> The method is used to limit the maximum nfts count per wallet
+
 **setPrice** -
     ***required parameter - NUMBER***
 
@@ -119,7 +125,7 @@
 
 ## Reading Methods
 
-**MAX_MINTSUPPLY** -
+**maximumMintSupply** -
 > The maximum allowed mint count.
 
 **allowListClaimedBy** -
@@ -173,10 +179,13 @@
 > return true/false
 > describes whether the presale starts or not
 
-
 **maximumAllowedTokensPerPurchase** -
 > returns number
 > The count of maximum allowed NFTs per purchase
+
+**maximumAllowedTokensPerWallet** -
+> returns number
+> The count of maximum allowed NFTs per wallet
 
 **name** -
 > returns string
