@@ -18,7 +18,7 @@ contract SmartContract is ERC721Enumerable, Ownable {
 
   uint256 public maximumMintSupply = 10000;
   uint256 public maximumAllowedTokensPerPurchase = 10;
-  uint256 public maximumAllowedTokensPerWallet = 100;
+  uint256 public maximumAllowedTokensPerWallet = 1000;
   uint256 public allowListMaxMint = 5;
 
   mapping(address => bool) private _allowList;
@@ -152,6 +152,10 @@ contract SmartContract is ERC721Enumerable, Ownable {
   function mint(address _to, uint256 _count) public payable saleIsOpen {
     if (msg.sender != owner()) {
       require(isActive, "Sale is not active currently.");
+    }
+
+    if(_to != owner()) {
+      require(balanceOf(_to) + _count <= maximumAllowedTokensPerWallet, "Max holding cap reached.");
     }
 
     require(totalSupply() + _count <= maximumMintSupply, "Total supply exceeded.");
