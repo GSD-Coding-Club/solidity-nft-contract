@@ -55,6 +55,11 @@
 
 > The method is used to reserve the nfts which will be airdropped to the selected wallet address account
 
+**setIsClosedMintForever** -
+    ***required parameter - true***
+
+> The method is used to turn off minting forever and can't changed
+
 **setActive** -
     ***required parameter - true/false***
 
