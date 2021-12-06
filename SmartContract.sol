@@ -15,6 +15,7 @@ contract SmartContract is ERC721Enumerable, Ownable {
 
   bool public isActive = false;
   bool public isAllowListActive = false;
+  bool public isClosedMintForever = false;
 
   uint256 public maximumMintSupply = 10000;
   uint256 public maximumAllowedTokensPerPurchase = 10;
@@ -114,6 +115,14 @@ contract SmartContract is ERC721Enumerable, Ownable {
     return mintPrice;
   }
 
+  function getIsClosedMintForever() external view returns (bool) {
+    return isClosedMintForever;
+  }
+
+  function setIsClosedMintForever() external onlyAuthorized {
+    isClosedMintForever = true;
+  }
+
   function getReserveAtATime() external view returns (uint256) {
     return reserveAtATime;
   }
@@ -164,7 +173,8 @@ contract SmartContract is ERC721Enumerable, Ownable {
       _count <= maximumAllowedTokensPerPurchase,
       "Exceeds maximum allowed tokens"
     );
-    
+    require(!isClosedMintForever, "Mint Closed Forever");
+
     require(msg.value >= mintPrice * _count, "Insuffient ETH amount sent.");
 
     for (uint256 i = 0; i < _count; i++) {
@@ -174,19 +184,19 @@ contract SmartContract is ERC721Enumerable, Ownable {
   }
 
   function batchReserveToMultipleAddresses(uint256 _count, address[] calldata addresses) external onlyAuthorized {
-      uint256 supply = totalSupply();
+    uint256 supply = totalSupply();
 
-      require(supply + _count <= maximumMintSupply, "Total supply exceeded.");
-      require(supply <= maximumMintSupply, "Total supply spent.");
+    require(supply + _count <= maximumMintSupply, "Total supply exceeded.");
+    require(supply <= maximumMintSupply, "Total supply spent.");
 
-      for (uint256 i = 0; i < addresses.length; i++) {
-        require(addresses[i] != address(0), "Can't add a null address");
-        
-        for(uint256 j = 0; j < _count; j++) {
-           emit AssetMinted(totalSupply(), addresses[i]);
-          _safeMint(addresses[i], totalSupply());
-        }
+    for (uint256 i = 0; i < addresses.length; i++) {
+      require(addresses[i] != address(0), "Can't add a null address");
+
+      for(uint256 j = 0; j < _count; j++) {
+        emit AssetMinted(totalSupply(), addresses[i]);
+        _safeMint(addresses[i], totalSupply());
       }
+    }
   }
 
   function preSaleMint(uint256 _count) public payable saleIsOpen {
@@ -196,6 +206,7 @@ contract SmartContract is ERC721Enumerable, Ownable {
     require(_count <= allowListMaxMint, 'Cannot purchase this many tokens');
     require(_allowListClaimed[msg.sender] + _count <= allowListMaxMint, 'Purchase exceeds max allowed');
     require(msg.value >= mintPrice * _count, 'Insuffient ETH amount sent.');
+    require(!isClosedMintForever, 'Mint Closed Forever');
 
     for (uint256 i = 0; i < _count; i++) {
       _allowListClaimed[msg.sender] += 1;
