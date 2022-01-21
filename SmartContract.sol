@@ -107,32 +107,12 @@ contract SmartContract is ERC721Enumerable, Ownable {
     _baseTokenURI = baseURI;
   }
 
-  function getMaximumAllowedTokens() public view onlyAuthorized returns (uint256) {
-    return maximumAllowedTokensPerPurchase;
-  }
-
-  function getPrice() external view returns (uint256) {
-    return mintPrice;
-  }
-
-  function getIsClosedMintForever() external view returns (bool) {
-    return isClosedMintForever;
-  }
-
   function setIsClosedMintForever() external onlyAuthorized {
     isClosedMintForever = true;
   }
 
   function getReserveAtATime() external view returns (uint256) {
     return reserveAtATime;
-  }
-
-  function getTotalSupply() external view returns (uint256) {
-    return totalSupply();
-  }
-
-  function getContractOwner() public view returns (address) {
-    return owner();
   }
 
   function _baseURI() internal view virtual override returns (string memory) {
