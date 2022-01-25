@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.11;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SmartContract is ERC721Enumerable, Ownable {
-  uint256 public mintPrice = 0.07 ether;
+contract SmartContractUpdated is ERC721, Ownable {
+  using Counters for Counters.Counter;
+  Counters.Counter private _tokenSupply;
+  Counters.Counter private _nextTokenId;
+
+
+  uint256 public mintPrice = 0.01 ether;
 
   uint256 private reserveAtATime = 50;
   uint256 private reservedCount = 0;
@@ -14,18 +20,17 @@ contract SmartContract is ERC721Enumerable, Ownable {
   string _baseTokenURI;
 
   bool public isActive = false;
-  bool public isAllowListActive = false;
+  bool public isPresaleActive = false;
   bool public isClosedMintForever = false;
 
-  uint256 public maximumMintSupply = 10000;
+  uint256 public MAX_SUPPLY = 10;
   uint256 public maximumAllowedTokensPerPurchase = 10;
-  uint256 public maximumAllowedTokensPerWallet = 1000;
-  uint256 public allowListMaxMint = 5;
+  uint256 public maximumAllowedTokensPerWallet = 100;
+  uint256 public presaleMaxMint = 5;
 
-  mapping(address => bool) private _allowList;
-  mapping(address => uint256) private _allowListClaimed;
+  mapping(address => bool) private _whiteList;
+  mapping(address => uint256) private _whiteListClaimed;
 
-  event AssetMinted(uint256 tokenId, address sender);
   event SaleActivation(bool isActive);
 
   constructor(string memory baseURI) ERC721("Smart Contract", "SC") {
@@ -33,13 +38,17 @@ contract SmartContract is ERC721Enumerable, Ownable {
   }
 
   modifier saleIsOpen {
-    require(totalSupply() <= maximumMintSupply, "Sale has ended.");
+    require(_tokenSupply.current() <= MAX_SUPPLY, "Sale has ended.");
     _;
   }
 
   modifier onlyAuthorized() {
     require(owner() == msg.sender);
     _;
+  }
+
+  function tokensMinted() public view returns (uint256) {
+    return _tokenSupply.current();
   }
 
   function setMaximumAllowedTokens(uint256 _count) public onlyAuthorized {
@@ -56,39 +65,39 @@ contract SmartContract is ERC721Enumerable, Ownable {
   }
 
   function setMaxMintSupply(uint256 maxMintSupply) external  onlyAuthorized {
-    maximumMintSupply = maxMintSupply;
+    MAX_SUPPLY = maxMintSupply;
   }
 
-  function setIsAllowListActive(bool _isAllowListActive) external onlyAuthorized {
-    isAllowListActive = _isAllowListActive;
+  function seIsPresaleActive(bool _isPresaleActive) external onlyAuthorized {
+    isPresaleActive = _isPresaleActive;
   }
 
-  function setAllowListMaxMint(uint256 maxMint) external  onlyAuthorized {
-    allowListMaxMint = maxMint;
+  function setPresaleMaxMint(uint256 maxMint) external  onlyAuthorized {
+    presaleMaxMint = maxMint;
   }
 
-  function addToAllowList(address[] calldata addresses) external onlyAuthorized {
+  function addToWhiteList(address[] calldata addresses) external onlyAuthorized {
     for (uint256 i = 0; i < addresses.length; i++) {
       require(addresses[i] != address(0), "Can't add a null address");
-      _allowList[addresses[i]] = true;
-      _allowListClaimed[addresses[i]] > 0 ? _allowListClaimed[addresses[i]] : 0;
+      _whiteList[addresses[i]] = true;
+      _whiteListClaimed[addresses[i]] > 0 ? _whiteListClaimed[addresses[i]] : 0;
     }
   }
 
-  function checkIfOnAllowList(address addr) external view returns (bool) {
-    return _allowList[addr];
+  function checkIfOnAllowList(address _whiteListedAddress) external view returns (bool) {
+    return _whiteList[_whiteListedAddress];
   }
 
   function removeFromAllowList(address[] calldata addresses) external onlyAuthorized {
     for (uint256 i = 0; i < addresses.length; i++) {
       require(addresses[i] != address(0), "Can't add a null address");
-      _allowList[addresses[i]] = false;
+      _whiteList[addresses[i]] = false;
     }
   }
 
-  function allowListClaimedBy(address owner) external view returns (uint256){
+  function whiteListClaimedBy(address owner) external view returns (uint256){
     require(owner != address(0), 'Zero address not on Allow List');
-    return _allowListClaimed[owner];
+    return _whiteListClaimed[owner];
   }
 
   function setReserveAtATime(uint256 val) public onlyAuthorized {
@@ -121,89 +130,62 @@ contract SmartContract is ERC721Enumerable, Ownable {
 
   function reserveNft() public onlyAuthorized {
     require(reservedCount <= maxReserveCount, "Max Reserves taken already!");
-    uint256 supply = totalSupply();
     uint256 i;
 
     for (i = 0; i < reserveAtATime; i++) {
-      emit AssetMinted(supply + i, msg.sender);
-      _safeMint(msg.sender, supply + i);
+      _tokenSupply.increment();
+      _safeMint(msg.sender, _tokenSupply.current());
       reservedCount++;
     }
   }
 
   function reserveToCustomWallet(address _walletAddress, uint256 _count) public onlyAuthorized {
     for (uint256 i = 0; i < _count; i++) {
-      emit AssetMinted(totalSupply(), _walletAddress);
-      _safeMint(_walletAddress, totalSupply());
+      _tokenSupply.increment();
+      _safeMint(_walletAddress, _tokenSupply.current());
     }
   }
 
-  function mint(address _to, uint256 _count) public payable saleIsOpen {
+  function mint(uint256 _count) public payable saleIsOpen {
+    uint256 mintIndex = _tokenSupply.current();
+
     if (msg.sender != owner()) {
       require(isActive, "Sale is not active currently.");
+      require(balanceOf(msg.sender) + _count <= maximumAllowedTokensPerWallet, "Max holding cap reached.");
     }
 
-    if(_to != owner()) {
-      require(balanceOf(_to) + _count <= maximumAllowedTokensPerWallet, "Max holding cap reached.");
-    }
 
-    require(totalSupply() + _count <= maximumMintSupply, "Total supply exceeded.");
-    require(totalSupply() <= maximumMintSupply, "Total supply spent.");
+    require(mintIndex + _count <= MAX_SUPPLY, "Total supply exceeded.");
     require(
       _count <= maximumAllowedTokensPerPurchase,
       "Exceeds maximum allowed tokens"
     );
     require(!isClosedMintForever, "Mint Closed Forever");
 
-    require(msg.value >= mintPrice * _count, "Insuffient ETH amount sent.");
+    require(msg.value >= mintPrice * _count, "Insufficient ETH amount sent.");
 
     for (uint256 i = 0; i < _count; i++) {
-      emit AssetMinted(totalSupply(), _to);
-      _safeMint(_to, totalSupply());
+      _tokenSupply.increment();
+      _safeMint(msg.sender, _tokenSupply.current());
     }
   }
 
   function batchReserveToMultipleAddresses(uint256 _count, address[] calldata addresses) external onlyAuthorized {
-    uint256 supply = totalSupply();
+    uint256 supply = _tokenSupply.current();
 
-    require(supply + _count <= maximumMintSupply, "Total supply exceeded.");
-    require(supply <= maximumMintSupply, "Total supply spent.");
+    require(supply + _count <= MAX_SUPPLY, "Total supply exceeded.");
+    require(supply <= MAX_SUPPLY, "Total supply spent.");
 
     for (uint256 i = 0; i < addresses.length; i++) {
       require(addresses[i] != address(0), "Can't add a null address");
 
       for(uint256 j = 0; j < _count; j++) {
-        emit AssetMinted(totalSupply(), addresses[i]);
-        _safeMint(addresses[i], totalSupply());
+        _tokenSupply.increment();
+        _safeMint(addresses[i], _tokenSupply.current());
       }
     }
   }
 
-  function preSaleMint(uint256 _count) public payable saleIsOpen {
-    require(isAllowListActive, 'Allow List is not active');
-    require(_allowList[msg.sender], 'You are not on the Allow List');
-    require(totalSupply() < maximumMintSupply, 'All tokens have been minted');
-    require(_count <= allowListMaxMint, 'Cannot purchase this many tokens');
-    require(_allowListClaimed[msg.sender] + _count <= allowListMaxMint, 'Purchase exceeds max allowed');
-    require(msg.value >= mintPrice * _count, 'Insuffient ETH amount sent.');
-    require(!isClosedMintForever, 'Mint Closed Forever');
-
-    for (uint256 i = 0; i < _count; i++) {
-      _allowListClaimed[msg.sender] += 1;
-      emit AssetMinted(totalSupply(), msg.sender);
-      _safeMint(msg.sender, totalSupply());
-    }
-  }
-
-  function walletOfOwner(address _owner) external view returns(uint256[] memory) {
-    uint tokenCount = balanceOf(_owner);
-    uint256[] memory tokensId = new uint256[](tokenCount);
-
-    for(uint i = 0; i < tokenCount; i++){
-      tokensId[i] = tokenOfOwnerByIndex(_owner, i);
-    }
-    return tokensId;
-  }
 
   function withdraw() external onlyAuthorized {
     uint balance = address(this).balance;
